@@ -44,8 +44,7 @@ class JltBusSchedule(hass.Hass):
             attributes.update({"direction": schedule['direction']})
             attributes.update({"time_to_departure": schedule['time_to_departure']})
             attributes.update({"too_late": schedule["too_late"]})
-            self.log(
-                f"{sensor_name}: {schedule['departure_time']}{schedule['time_to_departure']}, (line_number: {schedule['line_number']}, direction: {schedule['direction']})")
+            self.log(f"{sensor_name}: {schedule['departure_time']}{schedule['time_to_departure']}, (line_number: {schedule['line_number']}, direction: {schedule['direction']})")
             self.set_state(sensor_name, state=schedule['departure_time'], attributes=attributes)
 
             index = index + 1

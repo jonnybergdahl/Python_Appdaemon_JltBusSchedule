@@ -5,19 +5,26 @@ from urllib3.util.retry import Retry
 from bs4 import BeautifulSoup
 import appdaemon.plugins.hass.hassapi as hass
 
+# Stops to query: (stop_id, destination, direction)
+TARGETS = [
+            (6001350, "Huskvarna via Centrum-Elmia", "north"),
+            (6001353, "Jönköping Rådhusparken",       "north"),
+          ]
+# "too_late" threshold
+TOO_LATE_TRESHOLD = 8
+# Number of coming departures to handle
+NUMBER_OF_DEPARTURES = 6
+
+
 class JltBusSchedule(hass.Hass):
     def initialize(self):
         self.log("initialize called")
         # Config
         self.interval_seconds = 60     # how often to try again
-        self.max_departures   = 9      # create at most 9 per suffix
-        self.threshold_min    = 8      # "too_late" threshold
+        self.max_departures   = NUMBER_OF_DEPARTURES      # create at most 9 per suffix
+        self.threshold_min    = TOO_LATE_TRESHOLD
 
-        # Stops to query: (stop_id, destination_substring, suffix)
-        self.targets = [
-            (6001350, "Huskvarna via Centrum-Elmia", "north"),
-            (6001353, "Jönköping Rådhusparken",       "north"),
-        ]
+        self.targets = TARGETS
 
         # HTTP session w/ retries + timeouts
         self.session = requests.Session()
@@ -94,7 +101,7 @@ class JltBusSchedule(hass.Hass):
             self.set_state_if_changed(sensor_name, schedule['departure_time'], attributes)
 
     def get_bus_schedules(self, stop_id, destination, max_items):
-        url = f"https://www.jlt.se/api/StopAreaApi/GetClosestDepartures?fromId={stop_id}&take=20"
+        url = f"https://www.jlt.se/api/StopAreaApi/GetClosestDepartures?fromId={stop_id}&take={NUMBER_OF_DEPARTURES}"
         self.log(url)
         try:
             # Fail fast if JLT is slow/unreachable
@@ -141,7 +148,7 @@ class JltBusSchedule(hass.Hass):
                 continue
 
             dep_time = raw[:5]            # "HH:MM"
-            ttd = raw[7:].strip("() ")    # after the space
+            ttd = raw[5:].strip("() ")    # after the space
 
             try:
                 target_time = datetime.strptime(dep_time, "%H:%M").replace(
